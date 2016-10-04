@@ -203,7 +203,7 @@ function geodaten_get_geodata($lat, $lon) {
 
     if ($xml !== FALSE) {
       foreach ($xml->children('gml', 'true') as $feature_member) {
-        if ($feature_member->getName() == 'featureMember') {
+        if ($feature_member->getName() == 'member') {
           foreach ($feature_member->children('vg250', true) as $feature) {
             if (isset($features[$feature->getName()])) {
               if (!empty($feature->GEN[0])) {
