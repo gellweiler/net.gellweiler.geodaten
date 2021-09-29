@@ -18,7 +18,8 @@ function geodaten_civicrm_post(
       $lat = $objectRef->geo_code_1;
       $lon = $objectRef->geo_code_2;
 
-      $geodata = geodaten_get_geodata($lat, $lon);
+      $geodatenzentrum = new CRM_Geodaten_Geodatenzentrum();
+      $geodata = $geodatenzentrum->getGeodata($lat, $lon);
 
       // Validate geodata.
       if (empty($geodata['rs'])) {
@@ -107,7 +108,7 @@ function geodaten_update_from_result_set($address) {
   $custom_fields = geodaten_get_custom_fields_from_table('geodaten');
 
   if ($address->N == 0) {
-    break;
+    return;
   }
 
   // Walk through all addresses and create geodata entity
@@ -135,91 +136,6 @@ function geodaten_update_from_result_set($address) {
       sleep(2);
     }
   }
-}
-
-/**
- * Get extra address information about address from lat/lon.
- *
- * Uses the WFS service of the Bundesamt for Geodasie to get RS, Kreis,
- * Regierungsbezirk, Bundesland and Gemeinde.
- */
-function geodaten_get_geodata($lat, $lon) {
-  $result = array();
-
-  // List of features to request mapping to the id to return in
-  // the result set.
-  // The Rs is extracted from the last feature in the list
-  // that contains an rs.
-  $features = array(
-    'Bundesland' => 'bundesland',
-    'Regierungsbezirk' => 'regierungsbezirk',
-    'Kreis' => 'kreis',
-    'Gemeinde' => 'gemeinde',
-  );
-
-  // Create bounding box from point.
-  $bbox = "$lat,$lon,$lat,$lon,EPSG:4326";
-
-  // Create urls for features. The WFS in use allows
-  // only one feature per request. So create an url for each feature.
-  $urls = array();
-  foreach (array_keys($features) as $feature) {
-    $urls[] = 'http://sg.geodatenzentrum.de/wfs_vg250?'
-    . http_build_query(array(
-      'request' => 'GetFeature',
-      'service' => 'wfs',
-      'version' => '1.2.0',
-      'typeName' => "vg250:$feature",
-      'propertyName' => 'vg250:GEN,vg250:RS',
-      'bbox' => $bbox
-    ));
-  }
-
-  // Create a curl multihandler
-  // and curl handlers for urls to it.
-  $mh = curl_multi_init();
-  $chs = array();
-  foreach ($urls as $url) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20);
-    curl_multi_add_handle($mh, $ch);
-    $chs[] = $ch;
-  }
-
-  // Wait for all curl handlers to finish.
-  do {
-    curl_multi_exec($mh, $running);
-  } while($running > 0);
-
-  
-  // Parse result of curl handlers.
-  foreach ($chs as $ch) {
-    $content = curl_multi_getcontent($ch);
-    curl_multi_remove_handle($mh, $ch);
-
-    $xml = simplexml_load_string($content);
-
-    if ($xml !== FALSE) {
-      foreach ($xml->children('gml', 'true') as $feature_member) {
-        if ($feature_member->getName() == 'member') {
-          foreach ($feature_member->children('vg250', true) as $feature) {
-            if (isset($features[$feature->getName()])) {
-              if (!empty($feature->GEN[0])) {
-                $result[$features[$feature->getName()]] = (string) $feature->GEN[0];
-              }
-              if (!empty($feature->RS[0])) {
-                $result['rs'] = (string) $feature->RS[0];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return $result;
 }
 
 /**

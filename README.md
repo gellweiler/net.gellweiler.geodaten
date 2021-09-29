@@ -1,3 +1,5 @@
+**Wichtig diese Civicrm Erweiterung benötigt die PHP GEOS Erweiterung.**
+
 Diese Erweiterung erweitert Adressen um die folgenden Informationen:
 
 - [Regionalschlüssel](https://de.wikipedia.org/wiki/Amtlicher_Gemeindeschl%C3%BCssel#Regionalschl.C3.BCssel)
