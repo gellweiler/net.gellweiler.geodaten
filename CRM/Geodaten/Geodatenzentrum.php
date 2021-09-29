@@ -67,15 +67,11 @@ class CRM_Geodaten_Geodatenzentrum {
     }
 
     // Create a curl multihandler
-    // and curl handlers for urls to it.
+    // and add curl handlers for urls to it.
     $mh = curl_multi_init();
     $chs = array();
     foreach ($urls as $url) {
       $ch = curl_init();
-
-      $headers = array(
-        'Accept: application/gml+xml'
-      );
 
       curl_setopt($ch, CURLOPT_URL, $url);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
